@@ -9,37 +9,43 @@ async function viewAllDepartments() {
 }
 
 async function addRole() {
-  const departments = await connection.query('SELECT * FROM department');
-  const departmentChoices = departments[0].map(({ id, name }) => ({
+  // Fetching all departments from the database
+  const [departments] = await connection.query('SELECT * FROM department');
+  
+  // Formatting department data for inquirer choices
+  const departmentChoices = departments.map(({ id, name }) => ({
     name: name,
-    value: id
+    value: id,
   }));
 
-  const role = await inquirer.prompt([
+  // Prompting the user to enter role information
+  const { title, salary, department_id } = await inquirer.prompt([
     {
       type: 'input',
       name: 'title',
-      message: 'What is the name of the role?'
+      message: 'What is the name of the role?',
     },
     {
       type: 'input',
       name: 'salary',
-      message: 'What is the salary of the role?'
+      message: 'What is the salary of the role?',
     },
     {
       type: 'list',
       name: 'department_id',
-      message: 'Which department does the role belong to?',
-      choices: departmentChoices
-    }
+      message: 'Which department does this role belong to?',
+      choices: departmentChoices,
+    },
   ]);
 
-  await connection.query('INSERT INTO role SET ?', role);
-  console.log(`Added ${role.title} to the database`);
+  // Inserting the new role into the database
+  await connection.query('INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)', [title, salary, department_id]);
+  
+  // Confirming role has been added
+  console.log(`Added ${title} to the database.`);
 }
 
 // Implement addRole, addEmployee, and updateEmployeeRole later
-async function addRole() {}
 async function addEmployee() {}
 async function updateEmployeeRole() {}
 
@@ -105,7 +111,13 @@ async function viewAllRoles() {
 }
 
 async function viewAllEmployees() {
-  const [rows] = await connection.query('SELECT * FROM employee');
+  const [rows] = await connection.query(`
+    SELECT e.id, e.first_name, e.last_name, r.title, d.name AS department, r.salary, CONCAT(m.first_name, ' ', m.last_name) AS manager
+    FROM employee e
+    LEFT JOIN role r ON e.role_id = r.id
+    LEFT JOIN department d ON r.department_id = d.id
+    LEFT JOIN employee m ON e.manager_id = m.id
+  `);
   console.table(rows);
 }
 
