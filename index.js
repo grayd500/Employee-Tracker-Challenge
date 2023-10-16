@@ -67,6 +67,27 @@ async function updateEmployeeManager() {
   console.log(`Employee's manager updated.`);
 }
 
+async function viewEmployeesByManager() {
+  const managerChoices = await fetchInquirerChoices('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee', 'name', 'id');
+  
+  const { manager_id } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'manager_id',
+      message: 'Select a manager to view their employees:',
+      choices: managerChoices,
+    },
+  ]);
+
+  const [rows] = await connection.query(`
+    SELECT e.id, e.first_name, e.last_name, r.title 
+    FROM employee e
+    LEFT JOIN role r ON e.role_id = r.id
+    WHERE e.manager_id = ?
+  `, [manager_id]);
+  
+  console.table(rows);
+}
 
 async function viewAllDepartments() {
   await queryAndDisplayTable('SELECT * FROM department');
@@ -99,6 +120,7 @@ async function mainMenu() {
         'View All Departments',
         'View All Roles',
         'View All Employees',
+        'View Employees by Manager',
         'Add a Department',
         'Add a Role',
         'Add an Employee',
@@ -124,6 +146,9 @@ async function mainMenu() {
       break;
     case 'View All Employees':
       await viewAllEmployees();
+      break;
+    case 'View Employees by Manager':
+      await viewEmployeesByManager();
       break;
     case 'Add a Department':
       await addDepartment();
