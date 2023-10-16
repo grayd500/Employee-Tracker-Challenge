@@ -89,6 +89,29 @@ async function viewEmployeesByManager() {
   console.table(rows);
 }
 
+async function viewEmployeesByDepartment() {
+  const departmentChoices = await fetchInquirerChoices('SELECT * FROM department', 'name', 'id');
+  
+  const { department_id } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'department_id',
+      message: 'Select a department to view its employees:',
+      choices: departmentChoices,
+    },
+  ]);
+
+  const [rows] = await connection.query(`
+    SELECT e.id, e.first_name, e.last_name, r.title 
+    FROM employee e
+    LEFT JOIN role r ON e.role_id = r.id
+    LEFT JOIN department d ON r.department_id = d.id
+    WHERE d.id = ?
+  `, [department_id]);
+  
+  console.table(rows);
+}
+
 async function viewAllDepartments() {
   await queryAndDisplayTable('SELECT * FROM department');
 }
@@ -121,6 +144,7 @@ async function mainMenu() {
         'View All Roles',
         'View All Employees',
         'View Employees by Manager',
+        'View Employees by Department',
         'Add a Department',
         'Add a Role',
         'Add an Employee',
@@ -149,6 +173,9 @@ async function mainMenu() {
       break;
     case 'View Employees by Manager':
       await viewEmployeesByManager();
+      break;
+    case 'View Employees by Department':
+      await viewEmployeesByDepartment();
       break;
     case 'Add a Department':
       await addDepartment();
