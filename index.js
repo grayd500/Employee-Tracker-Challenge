@@ -3,168 +3,77 @@ const mysql = require('mysql2/promise');
 
 let connection;
 
-async function viewAllDepartments() {
-  const [rows] = await connection.query('SELECT * FROM department');
+async function fetchInquirerChoices(query, nameKey, valueKey) {
+  const [rows] = await connection.query(query);
+  return rows.map(row => ({ name: row[nameKey], value: row[valueKey] }));
+}
+
+async function queryAndDisplayTable(query) {
+  const [rows] = await connection.query(query);
   console.table(rows);
 }
 
 async function addRole() {
-  // Fetching all departments from the database
-  const [departments] = await connection.query('SELECT * FROM department');
+  const departmentChoices = await fetchInquirerChoices('SELECT * FROM department', 'name', 'id');
   
-  // Formatting department data for inquirer choices
-  const departmentChoices = departments.map(({ id, name }) => ({
-    name: name,
-    value: id,
-  }));
-
-  // Prompting the user to enter role information
   const { title, salary, department_id } = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'title',
-      message: 'What is the name of the role?',
-    },
-    {
-      type: 'input',
-      name: 'salary',
-      message: 'What is the salary of the role?',
-    },
-    {
-      type: 'list',
-      name: 'department_id',
-      message: 'Which department does this role belong to?',
-      choices: departmentChoices,
-    },
+    { type: 'input', name: 'title', message: 'What is the name of the role?' },
+    { type: 'input', name: 'salary', message: 'What is the salary of the role?' },
+    { type: 'list', name: 'department_id', message: 'Which department does this role belong to?', choices: departmentChoices },
   ]);
 
-  // Inserting the new role into the database
   await connection.query('INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)', [title, salary, department_id]);
-  
-  // Confirming role has been added
   console.log(`Added ${title} to the database.`);
 }
 
-// Implement addRole, addEmployee, and updateEmployeeRole later
-async function addEmployee() {}
-async function updateEmployeeRole() {}
-
 async function addEmployee() {
-  // Get roles
-  const [roles] = await connection.query('SELECT * FROM role');
-  const roleChoices = roles.map(({ id, title, salary, department_id }) => ({
-    name: `${title} (${salary})`,
-    value: { id, salary, department_id }
-  }));
-
-  // Get managers (all employees for now)
-  const [managers] = await connection.query('SELECT * FROM employee');
-  const managerChoices = managers.map(({ id, first_name, last_name }) => ({
-    name: `${first_name} ${last_name}`,
-    value: id
-  }));
-
-  // Collect employee information
-  const { first_name, last_name, roleData, manager_id } = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'first_name',
-      message: "What is the employee's first name?"
-    },
-    {
-      type: 'input',
-      name: 'last_name',
-      message: "What is the employee's last name?"
-    },
-    {
-      type: 'list',
-      name: 'roleData',
-      message: "What is the employee's role?",
-      choices: roleChoices
-    },
-    {
-      type: 'list',
-      name: 'manager_id',
-      message: "Who is the employee's manager?",
-      choices: managerChoices
-    }
+  const roleChoices = await fetchInquirerChoices('SELECT * FROM role', 'title', 'id');
+  const managerChoices = await fetchInquirerChoices('SELECT * FROM employee', 'first_name', 'id');
+  
+  const { first_name, last_name, role_id, manager_id } = await inquirer.prompt([
+    { type: 'input', name: 'first_name', message: "What is the employee's first name?" },
+    { type: 'input', name: 'last_name', message: "What is the employee's last name?" },
+    { type: 'list', name: 'role_id', message: "What is the employee's role?", choices: roleChoices },
+    { type: 'list', name: 'manager_id', message: "Who is the employee's manager?", choices: managerChoices }
   ]);
 
-  const newEmployee = {
-    first_name,
-    last_name,
-    role_id: roleData.id,
-    manager_id
-  };
-
-  // Insert new employee
-  await connection.query('INSERT INTO employee SET ?', newEmployee);
-  console.log(`Added ${first_name} ${last_name} as a ${roles.find(role => role.id === roleData.id).title}.`);
+  await connection.query('INSERT INTO employee SET ?', { first_name, last_name, role_id, manager_id });
+  console.log(`Added ${first_name} ${last_name} to the database.`);
 }
 
-// Don't forget to call this function where appropriate in your mainMenu() switch statement
+async function updateEmployeeRole() {
+  const employeeChoices = await fetchInquirerChoices('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee', 'name', 'id');
+  const roleChoices = await fetchInquirerChoices('SELECT id, title FROM role', 'title', 'id');
+  
+  const { employee_id, new_role_id } = await inquirer.prompt([
+    { type: 'list', name: 'employee_id', message: 'Choose the employee to update:', choices: employeeChoices },
+    { type: 'list', name: 'new_role_id', message: 'Choose the new role:', choices: roleChoices },
+  ]);
 
+  await connection.query('UPDATE employee SET role_id = ? WHERE id = ?', [new_role_id, employee_id]);
+  console.log(`Employee role updated.`);
+}
+
+async function viewAllDepartments() {
+  await queryAndDisplayTable('SELECT * FROM department');
+}
 
 async function viewAllRoles() {
-  const [rows] = await connection.query('SELECT * FROM role');
-  console.table(rows);
+  await queryAndDisplayTable('SELECT * FROM role');
 }
 
 async function viewAllEmployees() {
-  const [rows] = await connection.query(`
+  await queryAndDisplayTable(`
     SELECT e.id, e.first_name, e.last_name, r.title, d.name AS department, r.salary, CONCAT(m.first_name, ' ', m.last_name) AS manager
     FROM employee e
     LEFT JOIN role r ON e.role_id = r.id
     LEFT JOIN department d ON r.department_id = d.id
     LEFT JOIN employee m ON e.manager_id = m.id
   `);
-  console.table(rows);
 }
 
-async function addDepartment() {
-  const { name } = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'name',
-      message: 'Enter the department name:',
-    },
-  ]);
+// ...existing code for mainMenu and main functions remain unchanged
 
-  await connection.query('INSERT INTO department (name) VALUES (?)', [name]);
-  console.log(`${name} department added.`);
-}
-
-async function updateEmployeeRole() {
-  const employees = await connection.query('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee');
-  const employeeChoices = employees[0].map((employee) => ({
-    name: employee.name,
-    value: employee.id,
-  }));
-
-  const roles = await connection.query('SELECT id, title FROM role');
-  const roleChoices = roles[0].map((role) => ({
-    name: role.title,
-    value: role.id,
-  }));
-
-  const { employee_id, new_role_id } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'employee_id',
-      message: 'Choose the employee to update:',
-      choices: employeeChoices,
-    },
-    {
-      type: 'list',
-      name: 'new_role_id',
-      message: 'Choose the new role:',
-      choices: roleChoices,
-    },
-  ]);
-
-  await connection.query('UPDATE employee SET role_id = ? WHERE id = ?', [new_role_id, employee_id]);
-  console.log(`Employee role updated.`);
-}
 
 async function mainMenu() {
   const { action } = await inquirer.prompt([
