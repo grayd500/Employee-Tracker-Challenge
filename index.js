@@ -54,6 +54,20 @@ async function updateEmployeeRole() {
   console.log(`Employee role updated.`);
 }
 
+async function updateEmployeeManager() {
+  const employeeChoices = await fetchInquirerChoices('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee', 'name', 'id');
+  const managerChoices = await fetchInquirerChoices('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee', 'name', 'id');
+
+  const { employee_id, new_manager_id } = await inquirer.prompt([
+    { type: 'list', name: 'employee_id', message: 'Choose the employee whose manager you want to update:', choices: employeeChoices },
+    { type: 'list', name: 'new_manager_id', message: 'Choose the new manager for this employee:', choices: managerChoices },
+  ]);
+
+  await connection.query('UPDATE employee SET manager_id = ? WHERE id = ?', [new_manager_id, employee_id]);
+  console.log(`Employee's manager updated.`);
+}
+
+
 async function viewAllDepartments() {
   await queryAndDisplayTable('SELECT * FROM department');
 }
@@ -89,6 +103,7 @@ async function mainMenu() {
         'Add a Role',
         'Add an Employee',
         'Update an Employee Role',
+        'Update an Employee Manager',
         'Exit',
       ],
     },
@@ -115,6 +130,9 @@ async function mainMenu() {
       break;
     case 'Update an Employee Role':
       await updateEmployeeRole();
+      break;
+    case 'Update an Employee Manager': // <-- Insert this new case here
+      await updateEmployeeManager();
       break;
     case 'Exit':
       connection.end();
