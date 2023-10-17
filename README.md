@@ -35,7 +35,10 @@ Gained valuable experience in working with Node.js, Inquirer, and MySQL. Learned
 
 To start the application, navigate to the project directory and run `node index.js`. Follow the command-line prompts to manage your company's organizational structure.
 
-```md
+## Demo
+
+Watch the demo video here: [Employee Tracker Demo Video](https://share.vidyard.com/watch/fLjpBWXmsBjkxqMLpAeRtx?)
+
 ![Command-line Interface](assets/images/screenshot.png)
 
 ## Credits
