@@ -12,6 +12,15 @@ async function queryAndDisplayTable(query) {
   const [rows] = await connection.query(query);
   console.table(rows);
 }
+async function addDepartment() {
+  const { name } = await inquirer.prompt([
+    { type: 'input', name: 'name', message: 'What is the name of the department?' }
+  ]);
+
+  await connection.query('INSERT INTO department (name) VALUES (?)', [name]);
+  console.log(`Added ${name} to the database.`);
+}
+
 
 async function addRole() {
   const departmentChoices = await fetchInquirerChoices('SELECT * FROM department', 'name', 'id');
