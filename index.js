@@ -26,6 +26,19 @@ async function addDepartment() {
   console.log(`Added ${title} to the database.`);
 }
 
+async function addRole() {
+  const departmentChoices = await fetchInquirerChoices('SELECT * FROM department', 'name', 'id');
+  
+  const role = await inquirer.prompt([
+    { type: 'input', name: 'title', message: 'What is the name of the role?' },
+    { type: 'input', name: 'salary', message: 'What is the salary of the role?' },
+    { type: 'list', name: 'department_id', message: 'Which department does the role belong to?', choices: departmentChoices }
+  ]);
+
+  await connection.query('INSERT INTO role SET ?', role);
+  console.log(`Added ${role.title} to the database`);
+}
+
 async function addEmployee() {
   const roleChoices = await fetchInquirerChoices('SELECT * FROM role', 'title', 'id');
   const managerChoices = await fetchInquirerChoices('SELECT * FROM employee', 'first_name', 'id');
