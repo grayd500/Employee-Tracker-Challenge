@@ -12,16 +12,8 @@ async function queryAndDisplayTable(query) {
   const [rows] = await connection.query(query);
   console.table(rows);
 }
+
 async function addDepartment() {
-  const { name } = await inquirer.prompt([
-    { type: 'input', name: 'name', message: 'What is the name of the department?' }
-  ]);
-
-  await connection.query('INSERT INTO department (name) VALUES (?)', [name]);
-  console.log(`Added ${name} to the database.`);
-}
-
-async function addRole() {
   const departmentChoices = await fetchInquirerChoices('SELECT * FROM department', 'name', 'id');
   
   const { title, salary, department_id } = await inquirer.prompt([
@@ -47,6 +39,19 @@ async function addEmployee() {
 
   await connection.query('INSERT INTO employee SET ?', { first_name, last_name, role_id, manager_id });
   console.log(`Added ${first_name} ${last_name} to the database.`);
+}
+
+async function addDepartment() {
+  const { name } = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'name',
+      message: 'Enter the department name:',
+    },
+  ]);
+
+  await connection.query('INSERT INTO department (name) VALUES (?)', [name]);
+  console.log(`${name} department added.`);
 }
 
 async function updateEmployeeRole() {
@@ -76,28 +81,19 @@ async function updateEmployeeManager() {
 }
 
 async function deleteDepartment() {
-  const [departments] = await db.query('SELECT * FROM department');
-  
-  const { departmentId } = await inquirer.prompt([
+  const departmentChoices = await fetchInquirerChoices('SELECT * FROM department', 'name', 'id');
+
+  const { department_id } = await inquirer.prompt([
     {
       type: 'list',
-      name: 'departmentId',
+      name: 'department_id',
       message: 'Which department would you like to delete?',
-      choices: departments.map(department => ({ name: department.name, value: department.id })),
+      choices: departmentChoices,
     },
   ]);
 
-  // Check if any roles are associated with this department
-  const [roles] = await db.query('SELECT * FROM role WHERE department_id = ?', [departmentId]);
-  
-  if (roles.length > 0) {
-    console.log('Warning: This department has roles that need to be reassigned before deletion.');
-    mainMenu(); // Returning to the main menu
-  } else {
-    await db.query('DELETE FROM department WHERE id = ?', [departmentId]);
-    console.log('Department deleted.');
-    mainMenu(); // Returning to the main menu
-  }
+  await connection.query('DELETE FROM department WHERE id = ?', [department_id]);
+  console.log(`Department deleted.`);
 }
 
 async function deleteRole() {
