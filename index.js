@@ -3,46 +3,57 @@ const mysql = require('mysql2/promise');
 
 let connection;
 
+// Function to fetch choices for inquirer prompts from the database
 async function fetchInquirerChoices(query, nameKey, valueKey) {
   const [rows] = await connection.query(query);
   return rows.map(row => ({ name: row[nameKey], value: row[valueKey] }));
 }
 
+// Function to execute a query and display the result as a table
 async function queryAndDisplayTable(query) {
   const [rows] = await connection.query(query);
   console.table(rows);
 }
 
+// Function to add a department to the database
 async function addDepartment() {
   const departmentChoices = await fetchInquirerChoices('SELECT * FROM department', 'name', 'id');
   
+  // Prompt for department details
   const { title, salary, department_id } = await inquirer.prompt([
     { type: 'input', name: 'title', message: 'What is the name of the role?' },
     { type: 'input', name: 'salary', message: 'What is the salary of the role?' },
     { type: 'list', name: 'department_id', message: 'Which department does this role belong to?', choices: departmentChoices },
   ]);
 
+  // Insert department data into the database
   await connection.query('INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)', [title, salary, department_id]);
   console.log(`Added ${title} to the database.`);
 }
 
+// Function to add a role to the database
 async function addRole() {
+  // Fetch existing department choices
   const departmentChoices = await fetchInquirerChoices('SELECT * FROM department', 'name', 'id');
   
+  // Prompt for role details
   const role = await inquirer.prompt([
     { type: 'input', name: 'title', message: 'What is the name of the role?' },
     { type: 'input', name: 'salary', message: 'What is the salary of the role?' },
     { type: 'list', name: 'department_id', message: 'Which department does the role belong to?', choices: departmentChoices }
   ]);
 
+  // Insert role data into the database
   await connection.query('INSERT INTO role SET ?', role);
   console.log(`Added ${role.title} to the database`);
 }
 
+// Function to add an employee to the database
 async function addEmployee() {
   const roleChoices = await fetchInquirerChoices('SELECT * FROM role', 'title', 'id');
   const managerChoices = await fetchInquirerChoices('SELECT * FROM employee', 'first_name', 'id');
   
+  // Prompt for employee details
   const { first_name, last_name, role_id, manager_id } = await inquirer.prompt([
     { type: 'input', name: 'first_name', message: "What is the employee's first name?" },
     { type: 'input', name: 'last_name', message: "What is the employee's last name?" },
@@ -50,6 +61,7 @@ async function addEmployee() {
     { type: 'list', name: 'manager_id', message: "Who is the employee's manager?", choices: managerChoices }
   ]);
 
+  // Insert employee data into the database
   await connection.query('INSERT INTO employee SET ?', { first_name, last_name, role_id, manager_id });
   console.log(`Added ${first_name} ${last_name} to the database.`);
 }
@@ -67,15 +79,19 @@ async function addDepartment() {
   console.log(`${name} department added.`);
 }
 
+// Function to update an employee's role
 async function updateEmployeeRole() {
+// Fetch choices for employees and roles
   const employeeChoices = await fetchInquirerChoices('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee', 'name', 'id');
   const roleChoices = await fetchInquirerChoices('SELECT id, title FROM role', 'title', 'id');
   
+  // Prompt for employee and new role selection
   const { employee_id, new_role_id } = await inquirer.prompt([
     { type: 'list', name: 'employee_id', message: 'Choose the employee to update:', choices: employeeChoices },
     { type: 'list', name: 'new_role_id', message: 'Choose the new role:', choices: roleChoices },
   ]);
 
+  // Update the employee's role in the database
   await connection.query('UPDATE employee SET role_id = ? WHERE id = ?', [new_role_id, employee_id]);
   console.log(`Employee role updated.`);
 }
@@ -165,7 +181,6 @@ async function viewBudgetByDepartment() {
   console.table(rows);
 }
 
-
 async function viewEmployeesByManager() {
   const managerChoices = await fetchInquirerChoices('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee', 'name', 'id');
   
@@ -229,11 +244,11 @@ async function viewAllEmployees() {
   `);
 }
 
-// ...existing code for mainMenu and main functions remain unchanged
-
-
+// Main menu function to handle user choices
 async function mainMenu() {
   const { action } = await inquirer.prompt([
+    // Prompt for user action selection
+    // (List of options for various actions)
     {
       type: 'list',
       name: 'action',
@@ -259,6 +274,7 @@ async function mainMenu() {
   ]);
 
   switch (action) {
+  // Handle different actions based on user choice
     case 'Add a Role':
       await addRole();
       break;
@@ -309,9 +325,11 @@ async function mainMenu() {
   mainMenu(); // Loop back to the menu
 }
 
+// Main function to start the application
 async function main() {
   try {
     connection = await mysql.createConnection({
+      // Database connection details
       host: 'localhost',
       user: 'root',
       password: 'Fr33github', // Make sure to secure your passwords!
@@ -324,4 +342,4 @@ async function main() {
   }
 }
 
-main();
+main(); // Start the main function
