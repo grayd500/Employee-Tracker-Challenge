@@ -67,6 +67,55 @@ async function updateEmployeeManager() {
   console.log(`Employee's manager updated.`);
 }
 
+async function deleteDepartment() {
+  const departmentChoices = await fetchInquirerChoices('SELECT * FROM department', 'name', 'id');
+
+  const { department_id } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'department_id',
+      message: 'Which department would you like to delete?',
+      choices: departmentChoices,
+    },
+  ]);
+
+  await connection.query('DELETE FROM department WHERE id = ?', [department_id]);
+  console.log(`Department deleted.`);
+}
+
+async function deleteRole() {
+  const roleChoices = await fetchInquirerChoices('SELECT * FROM role', 'title', 'id');
+
+  const { role_id } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'role_id',
+      message: 'Which role would you like to delete?',
+      choices: roleChoices,
+    },
+  ]);
+
+  await connection.query('DELETE FROM role WHERE id = ?', [role_id]);
+  console.log(`Role deleted.`);
+}
+
+async function deleteEmployee() {
+  const employeeChoices = await fetchInquirerChoices('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee', 'name', 'id');
+
+  const { employee_id } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'employee_id',
+      message: 'Which employee would you like to delete?',
+      choices: employeeChoices,
+    },
+  ]);
+
+  await connection.query('DELETE FROM employee WHERE id = ?', [employee_id]);
+  console.log(`Employee deleted.`);
+}
+
+
 async function viewEmployeesByManager() {
   const managerChoices = await fetchInquirerChoices('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee', 'name', 'id');
   
@@ -150,6 +199,9 @@ async function mainMenu() {
         'Add an Employee',
         'Update an Employee Role',
         'Update an Employee Manager',
+        'Delete a Department',
+        'Delete a Role',
+        'Delete an Employee',
         'Exit',
       ],
     },
@@ -185,6 +237,15 @@ async function mainMenu() {
       break;
     case 'Update an Employee Manager': // <-- Insert this new case here
       await updateEmployeeManager();
+      break;
+    case 'Delete a Department':
+      await deleteDepartment();
+      break;
+    case 'Delete a Role':
+      await deleteRole();
+      break;
+    case 'Delete an Employee':
+      await deleteEmployee();
       break;
     case 'Exit':
       connection.end();
