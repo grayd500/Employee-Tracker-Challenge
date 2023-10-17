@@ -115,6 +115,30 @@ async function deleteEmployee() {
   console.log(`Employee deleted.`);
 }
 
+async function viewBudgetByDepartment() {
+  const departmentChoices = await fetchInquirerChoices('SELECT * FROM department', 'name', 'id');
+
+  const { department_id } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'department_id',
+      message: 'Which department\'s budget would you like to view?',
+      choices: departmentChoices,
+    },
+  ]);
+
+  const [rows] = await connection.query(`
+    SELECT d.name AS Department, SUM(r.salary) AS 'Utilized Budget'
+    FROM employee e
+    JOIN role r ON e.role_id = r.id
+    JOIN department d ON r.department_id = d.id
+    WHERE d.id = ?
+    GROUP BY d.id
+  `, [department_id]);
+
+  console.table(rows);
+}
+
 
 async function viewEmployeesByManager() {
   const managerChoices = await fetchInquirerChoices('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee', 'name', 'id');
@@ -194,6 +218,7 @@ async function mainMenu() {
         'View All Employees',
         'View Employees by Manager',
         'View Employees by Department',
+        'View Utilized Budget by Department',
         'Add a Department',
         'Add a Role',
         'Add an Employee',
@@ -228,6 +253,9 @@ async function mainMenu() {
       break;
     case 'View Employees by Department':
       await viewEmployeesByDepartment();
+      break;
+    case 'View Utilized Budget by Department':
+      await viewBudgetByDepartment();
       break;
     case 'Add a Department':
       await addDepartment();
